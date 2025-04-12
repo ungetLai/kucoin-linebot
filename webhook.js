@@ -28,11 +28,7 @@ app.post(
         console.log("📌 來源類型:", sourceType);
         console.log("🆔 對應 ID:", sourceId);
 
-        // 回覆用戶 ID 資訊
-        await client.replyMessage(event.replyToken, {
-          type: "text",
-          text: `🆔 你的 ${sourceType} ID 是：\n${sourceId}`,
-        });
+
       }
       res.sendStatus(200);
     } catch (error) {
