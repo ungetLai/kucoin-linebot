@@ -16,9 +16,7 @@ app.use(express.json());
 app.post("/push", async (req, res) => {
   const { message } = req.body;
   try {
-    // 替換為你自己的使用者 ID 或群組 ID
     const targetId = process.env.LINE_TARGET_ID;
-
     await client.pushMessage(targetId, {
       type: "text",
       text: message,
@@ -33,6 +31,25 @@ app.post("/push", async (req, res) => {
 // 確認 webhook 正常工作
 app.get("/health", (req, res) => {
   res.send("LINE Bot Webhook is running ✅");
+});
+
+// 用於 debug：取得 userId 或 groupId
+app.post("/callback", line.middleware(config), async (req, res) => {
+  const events = req.body.events;
+  if (events.length > 0) {
+    const event = events[0];
+    const sourceType = event.source.type;
+    const sourceId =
+      sourceType === "user" ? event.source.userId : event.source.groupId;
+    console.log("📌 來源類型:", sourceType);
+    console.log("🆔 對應 ID:", sourceId);
+
+    await client.replyMessage(event.replyToken, {
+      type: "text",
+      text: `🆔 你的 ${sourceType} ID 是：\n${sourceId}`,
+    });
+  }
+  res.sendStatus(200);
 });
 
 export default app;
