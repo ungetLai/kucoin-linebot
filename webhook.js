@@ -11,36 +11,38 @@ const config = {
 const client = new line.Client(config);
 const app = express();
 
-// 對於 /callback 使用 raw parser，避免 JSON parser 對 LINE 驗證簽章造成干擾
+// LINE Webhook 路由
 app.post(
   "/callback",
-  bodyParser.raw({ type: "application/json" }),
   line.middleware(config),
   async (req, res) => {
-    const jsonString = req.body.toString();
-    const body = JSON.parse(jsonString);
-    const events = body.events;
+    try {
+      const events = req.body.events;
 
-    if (events.length > 0) {
-      const event = events[0];
-      const sourceType = event.source.type;
-      const sourceId =
-        sourceType === "user" ? event.source.userId : event.source.groupId;
+      if (events.length > 0) {
+        const event = events[0];
+        const sourceType = event.source.type;
+        const sourceId =
+          sourceType === "user" ? event.source.userId : event.source.groupId;
 
-      console.log("📌 來源類型:", sourceType);
-      console.log("🆔 對應 ID:", sourceId);
+        console.log("📌 來源類型:", sourceType);
+        console.log("🆔 對應 ID:", sourceId);
 
-      // 回覆用戶 ID 資訊
-      await client.replyMessage(event.replyToken, {
-        type: "text",
-        text: `🆔 你的 ${sourceType} ID 是：\n${sourceId}`,
-      });
+        // 回覆用戶 ID 資訊
+        await client.replyMessage(event.replyToken, {
+          type: "text",
+          text: `🆔 你的 ${sourceType} ID 是：\n${sourceId}`,
+        });
+      }
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error handling LINE webhook:", error);
+      res.sendStatus(500);
     }
-    res.sendStatus(200);
   }
 );
 
-// 其他路由可繼續使用 JSON
+// 其他路由使用 JSON parser
 app.use(express.json());
 
 // 接收策略推播訊息
