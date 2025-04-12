@@ -1,6 +1,7 @@
 // webhook.js
 import express from "express";
 import line from "@line/bot-sdk";
+import bodyParser from "body-parser";
 
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -34,22 +35,30 @@ app.get("/health", (req, res) => {
 });
 
 // 用於 debug：取得 userId 或 groupId
-app.post("/callback", line.middleware(config), async (req, res) => {
-  const events = req.body.events;
-  if (events.length > 0) {
-    const event = events[0];
-    const sourceType = event.source.type;
-    const sourceId =
-      sourceType === "user" ? event.source.userId : event.source.groupId;
-    console.log("📌 來源類型:", sourceType);
-    console.log("🆔 對應 ID:", sourceId);
+// LINE Webhook 專用：必須保留 raw body 才能驗證簽章
+app.post(
+  "/callback",
+  bodyParser.raw({ type: "*/*" }),
+  line.middleware(config),
+  async (req, res) => {
+    const events = req.body.events || JSON.parse(req.body.toString()).events;
+    if (events.length > 0) {
+      const event = events[0];
+      const sourceType = event.source.type;
+      const sourceId =
+        sourceType === "user" ? event.source.userId : event.source.groupId;
 
-    await client.replyMessage(event.replyToken, {
-      type: "text",
-      text: `🆔 你的 ${sourceType} ID 是：\n${sourceId}`,
-    });
+      console.log("📌 來源類型:", sourceType);
+      console.log("🆔 對應 ID:", sourceId);
+
+      await client.replyMessage(event.replyToken, {
+        type: "text",
+        text: `🆔 你的 ${sourceType} ID 是：\\n${sourceId}`,
+      });
+    }
+    res.sendStatus(200);
   }
-  res.sendStatus(200);
-});
+);
+
 
 export default app;
